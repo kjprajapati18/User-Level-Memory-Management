@@ -5,6 +5,7 @@ int* pBitMap, *vBitMap;
 pde_t* pageDir;
 int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
 
+//#define debug
 
 /*
 Function responsible for allocating and setting your physical memory 
@@ -21,7 +22,9 @@ void SetPhysicalMem() {
     
     pdtSize = 1 << pdtBits;
     ptSize = 1 << ptBits;
+    #ifdef debug
     printf("pdtSize : %d, \t ptSize: %d\n", pdtSize, ptSize);
+    #endif
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
     pageDir = malloc(sizeof(pde_t) * pdtSize);
@@ -31,8 +34,12 @@ void SetPhysicalMem() {
         pageDir[i] = malloc(sizeof(pte_t)*ptSize);
     }
     
-    pBitMap = malloc(sizeof(int)*pdtSize*ptSize);
-    vBitMap = malloc(sizeof(int)*MAX_MEMSIZE/PGSIZE);
+    int pBMSize = sizeof(int)*pdtSize*ptSize;
+    int vBMSize = sizeof(int)*MAX_MEMSIZE/PGSIZE;
+    pBitMap = malloc(pBMSize);
+    memset(pBitMap, 0, pBMSize);
+    vBitMap = malloc(vBMSize);
+    memset(vBitMap, 0, vBMSize);
 }
 
 
@@ -47,8 +54,16 @@ pte_t * Translate(pde_t *pgdir, void *va) {
     //directory index and page table index get the physical address
     int pdInd = (unsigned long)va >> (offsetBits + ptBits);
     int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    
+    #ifdef debug
     printf("pd: %d\n", pdInd);
     printf("pt: %d\n", ptInd);
+    #endif
+    if(pdInd < pdtSize && ptInd < ptSize){
+        pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t);
+        return entry;
+    }
+
     //If translation not successfull
     return NULL; 
 }
@@ -67,7 +82,15 @@ PageMap(pde_t *pgdir, void *va, void *pa)
     /*HINT: Similar to Translate(), find the page directory (1st level)
     and page table (2nd-level) indices. If no mapping exists, set the
     virtual to physical mapping */
-
+    
+    int pdInd = (unsigned long)va >> (offsetBits + ptBits);
+    int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    if(checkMap(vBitMap, pdInd, ptInd) == 0){
+        pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t); 
+        *entry = pa; //////
+        vBitMap[pdInd*ptSize+ptInd] = 1;
+        return 0;
+    }
     return -1;
 }
 
@@ -75,7 +98,6 @@ PageMap(pde_t *pgdir, void *va, void *pa)
 /*Function that gets the next available page
 */
 void *get_next_avail(int num_pages) {
- 
     //Use virtual address bitmap to find the next free page
 }
 
@@ -145,4 +167,14 @@ void MatMult(void *mat1, void *mat2, int size, void *answer) {
     store the result to the "answer array"*/
 
        
+}
+
+
+//Helper Functions
+int checkMap(int* map, int pdInd, int ptInd){
+    
+    if(pdInd < pdtSize && ptInd < ptSize){
+       return map[pdInd*ptSize+ptInd];
+    }
+    return -1;
 }

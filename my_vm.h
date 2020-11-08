@@ -9,6 +9,7 @@
 
 //Add any important includes here which you may need
 #include <math.h>
+#include <string.h>
 
 #define PGSIZE 4096
 
@@ -45,5 +46,8 @@ void myfree(void *va, int size);
 void PutVal(void *va, void *val, int size);
 void GetVal(void *va, void *val, int size);
 void MatMult(void *mat1, void *mat2, int size, void *answer);
+
+//Helper Function headers
+int checkMap(int* map, int pdInd, int ptInd);
 
 #endif
