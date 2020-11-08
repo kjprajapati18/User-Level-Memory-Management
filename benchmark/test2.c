@@ -24,4 +24,6 @@ int main() {
     }
     printf("Addres of thign: %ld\n", *thing);
     printf("Addres of thign2: %ld\n", *thing2);
+
+    myalloc(30);
 }

@@ -5,7 +5,7 @@ int* pBitMap, *vBitMap;
 pde_t* pageDir;
 int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
 
-//#define debug
+#define debug
 
 /*
 Function responsible for allocating and setting your physical memory 
@@ -85,10 +85,12 @@ PageMap(pde_t *pgdir, void *va, void *pa)
     
     int pdInd = (unsigned long)va >> (offsetBits + ptBits);
     int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    
+    //Instead of checkign bit map, map all VA's to 0. Now to check if mapping exists, see if it maps to 0
+    //Mapping to 0 means no mapping exists. Mapping to anything else means it exists
     if(checkMap(vBitMap, pdInd, ptInd) == 0){
         pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t); 
         *entry = pa; //////
-        vBitMap[pdInd*ptSize+ptInd] = 1;
         return 0;
     }
     return -1;
@@ -114,10 +116,11 @@ void *get_next_avail(int num_pages) {
             }
             if(j == num_pages){
                 //Generate the virtual address, since page i is good spot
-                return getVA(i);
+                return (void*) i;
             }
         }
     }
+    return (void*) -1;
 }
 
 
@@ -127,13 +130,60 @@ and used by the benchmark
 void *myalloc(unsigned int num_bytes) {
 
     //HINT: If the physical memory is not yet initialized, then allocate and initialize.
-
-   /* HINT: If the page directory is not initialized, then initialize the
+    if(pMem == NULL) SetPhysicalMem();
+    /* HINT: If the page directory is not initialized, then initialize the
    page directory. Next, using get_next_avail(), check if there are free pages. If
    free pages are available, set the bitmaps and map a new page. Note, you will 
    have to mark which physical pages are used. */
+   
+    //Calculate number of pages needed for this malloc
+    int numPages = num_bytes%PGSIZE == 0? num_bytes/PGSIZE : num_bytes/PGSIZE + 1;
+   
+    //Find first free page in vMem that can store this many bytes
+    int pageInd = (int) get_next_avail(numPages);
+    #ifdef debug
+    printf("pageInd: %d\n", pageInd);
+    #endif
+    if(pageInd == -1) return NULL;
+    
+    //Get return address
+    void* vaStart = getVA(pageInd);
 
-    return NULL;
+    //Setup for loop (in case we need to malloc multiple pages)
+    void* va = vaStart;
+    int physPage = 0;
+    int pagesMalloc = 0;
+    int numEntries = pdtSize*ptSize;
+    while(num_bytes > 0){
+        int i;
+        //Find any free phys Page
+        for(i = physPage; i < numEntries; i++){
+            if(pBitMap[i] == 0){
+                physPage = i;
+                break;
+            }
+        }
+        
+        //If no more free phys pages, free everything we have malloced so far and return null
+        if(i == numEntries){
+            myfree(vaStart, pagesMalloc);
+            return NULL;
+        }
+
+        //Otherwise, get pa. Map. Set bitmaps.
+        void* pa = physPage*PGSIZE+pMem;
+        PageMap(pageDir, va, pa);
+        pBitMap[physPage] = 1;
+        vBitMap[pageInd] = 1;
+
+        //Increase va page index, num pages malloced. Point va to next page if there is still more to malloc
+        pageInd++;
+        pagesMalloc++;
+        num_bytes = num_bytes > PGSIZE? num_bytes-PGSIZE: 0;
+        if(num_bytes > 0) va += PGSIZE;
+    }
+
+    return vaStart;
 }
 
 /* Responsible for releasing one or more memory pages using virtual address (va)
