@@ -99,6 +99,25 @@ PageMap(pde_t *pgdir, void *va, void *pa)
 */
 void *get_next_avail(int num_pages) {
     //Use virtual address bitmap to find the next free page
+    int i;
+    int entries = pdtSize*ptSize;
+    for(i = 0; i < entries; i++){
+        //Find free page
+        if(vBitMap[i] == 0){
+            int j;
+            //Check if enough contiguous free pages
+            for(j=1; j < num_pages; j++){
+                if(vBitMap[i+j] == 1){
+                    i += j;
+                    break;
+                }
+            }
+            if(j == num_pages){
+                //Generate the virtual address, since page i is good spot
+                return getVA(i);
+            }
+        }
+    }
 }
 
 
@@ -177,4 +196,14 @@ int checkMap(int* map, int pdInd, int ptInd){
        return map[pdInd*ptSize+ptInd];
     }
     return -1;
+}
+
+void* getVA(int pageNum){
+    pte_t pdInd = pageNum/ptSize;
+    pte_t ptInd = pageNum%ptSize;
+
+    pdInd = pdInd <<(offsetBits+ptBits);
+    ptInd = ptInd << offsetBits;
+
+    return (pdInd | ptInd);
 }
