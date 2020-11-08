@@ -1,5 +1,11 @@
 #include "my_vm.h"
 
+void* pMem = NULL;
+int* pBitMap, *vBitMap;
+pde_t* pageDir;
+int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
+
+
 /*
 Function responsible for allocating and setting your physical memory 
 */
@@ -7,11 +13,26 @@ void SetPhysicalMem() {
 
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
-
+    pMem = malloc(MEMSIZE);
     
+    offsetBits = (int) (log(PGSIZE)/log(2)); //Relying on compiler to perform the substitution so we dont have to attach library
+    pdtBits = (32-offsetBits)/2;
+    ptBits = 32-offsetBits-pdtBits;
+    
+    pdtSize = 1 << pdtBits;
+    ptSize = 1 << ptBits;
+    printf("pdtSize : %d, \t ptSize: %d\n", pdtSize, ptSize);
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
-
+    pageDir = malloc(sizeof(pde_t) * pdtSize);
+    
+    int i;
+    for(i = 0; i < pdtSize; i++){
+        pageDir[i] = malloc(sizeof(pte_t)*ptSize);
+    }
+    
+    pBitMap = malloc(sizeof(int)*pdtSize*ptSize);
+    vBitMap = malloc(sizeof(int)*MAX_MEMSIZE/PGSIZE);
 }
 
 
@@ -24,8 +45,10 @@ pte_t * Translate(pde_t *pgdir, void *va) {
     //HINT: Get the Page directory index (1st level) Then get the
     //2nd-level-page table index using the virtual address.  Using the page
     //directory index and page table index get the physical address
-
-
+    int pdInd = (unsigned long)va >> (offsetBits + ptBits);
+    int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    printf("pd: %d\n", pdInd);
+    printf("pt: %d\n", ptInd);
     //If translation not successfull
     return NULL; 
 }
