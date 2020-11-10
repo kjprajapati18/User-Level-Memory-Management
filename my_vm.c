@@ -48,7 +48,7 @@ void SetPhysicalMem() {
 The function takes a virtual address and page directories starting address and
 performs translation to return the physical address
 */
-pte_t * Translate(pde_t *pgdir, void *va) {
+pte_t *Translate(pde_t *pgdir, void *va) {
     //HINT: Get the Page directory index (1st level) Then get the
     //2nd-level-page table index using the virtual address.  Using the page
     //directory index and page table index get the physical address
@@ -61,7 +61,7 @@ pte_t * Translate(pde_t *pgdir, void *va) {
     #endif
     if(pdInd < pdtSize && ptInd < ptSize){
         pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t);
-        return entry;
+        return *entry;
     }
 
     //If translation not successfull
@@ -141,6 +141,7 @@ void *myalloc(unsigned int num_bytes) {
    
     //Find first free page in vMem that can store this many bytes
     int pageInd = (int) get_next_avail(numPages);
+    //set virtual bitmap for threadsafety, busy wait w global?
     #ifdef debug
     printf("pageInd: %d\n", pageInd);
     #endif
@@ -166,7 +167,8 @@ void *myalloc(unsigned int num_bytes) {
         
         //If no more free phys pages, free everything we have malloced so far and return null
         if(i == numEntries){
-            myfree(vaStart, pagesMalloc);
+            //free virtual bitmap from current pageInd to pageInd-pageMalloc + numPages <--If implemeting thread safety as above
+            myfree(vaStart, pagesMalloc); //this pages malloc needs to be converted to a total size
             return NULL;
         }
 
@@ -193,6 +195,33 @@ void myfree(void *va, int size) {
     //Free the page table entries starting from this virtual address (va)
     // Also mark the pages free in the bitmap
     //Only free if the memory from "va" to va+size is valid
+    unsigned long max = -1; 
+    if(max - (unsigned int)va < size) return;
+    
+    int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
+    int pdInd = (unsigned long)va >> (offsetBits + ptBits);
+    int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    int i = numPages;
+    int j = ptInd;
+    int k = pdInd;
+    while(i > 0){
+        pte_t* entry = pageDir[k] + j*sizeof(pte_t);
+        pte_t pa = *entry;
+        *entry = 0;
+        int physInd = (int) (pa - (unsigned long) pMem)/PGSIZE;
+        pBitMap[physInd] = 0;
+        vBitMap[k*ptSize + j]= 0;
+        j++;
+        if (j>= ptSize){
+            j = 0; 
+            k++;
+        }
+        i--;
+    }
+    #ifdef debug
+    printf("Successful free at address %ld\n", va);
+    #endif
+    return;
 }
 
 
@@ -205,7 +234,26 @@ void PutVal(void *va, void *val, int size) {
        the contents of "val" to a physical page. NOTE: The "size" value can be larger
        than one page. Therefore, you may have to find multiple pages using Translate()
        function.*/
-
+    //go to phys address. set *phys = *val. 
+    int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
+    int i = getPageNum(va);
+    int entries = pdtSize *ptSize;
+    int pagesMalloc = 0;
+    for(i; i< entries; i++){
+        if(vBitMap[i] ==0){
+            myfree(va, pagesMalloc*PGSIZE);
+            return NULL;
+        }
+        pte_t* pa = Translate(pageDir, getVa(i));
+        if(pa == NULL) {
+            myfree(va, pagesMalloc*PGSIZE);
+            return NULL;
+        }
+        *pa = *(pte_t*)val;
+        pagesMalloc++;
+        if(pagesMalloc == numPages) break;
+    }
+    return NULL;
 }
 
 
@@ -216,8 +264,26 @@ void GetVal(void *va, void *val, int size) {
     "val" address. Assume you can access "val" directly by derefencing them.
     If you are implementing TLB,  always check first the presence of translation
     in TLB before proceeding forward */
-
-
+    int numPages = size%PGSIZE == 0? size/PGSIZE: size/PGSIZE+1;
+    int i = getPageNum(va);
+    int entries = pdtSize*ptSize;
+    int pagesFound;
+    //after each page, increment val (physical address) by pagesize to get to next physical page and fill it in as you go.
+    for(i; i < entries; i++){
+        if(vBitMap[i] == 0){
+            //dont know if val should keep the values we got up to or if we should clear it for fails later down the va
+            return NULL;
+        }
+        pte_t* pa = Translate(pageDir, getVa(i));
+        if(pa == NULL){
+            return NULL;
+        }
+        *(pte_t*)val = *pa;
+        pagesFound++;
+        val = val + sizeof(*pa);
+        if(pagesFound == numPages) break;
+    }
+    return NULL;
 }
 
 
@@ -256,4 +322,10 @@ void* getVA(int pageNum){
     ptInd = ptInd << offsetBits;
 
     return (pdInd | ptInd);
+}
+
+int getPageNum(void* va){
+    int pdInd = (unsigned long)va >> (offsetBits + ptBits);
+    int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    int pageNum = pdInd*ptSize + ptInd;
 }
