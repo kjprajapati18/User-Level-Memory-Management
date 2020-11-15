@@ -298,8 +298,33 @@ void MatMult(void *mat1, void *mat2, int size, void *answer) {
     load each element and perform multiplication. Take a look at test.c! In addition to 
     getting the values from two matrices, you will perform multiplication and 
     store the result to the "answer array"*/
+    int row, col, i;
+    int mat1Ele = 0, mat2Ele = 0;
+    int sum = 0;
 
-       
+
+    for(row = 0; row < size; row++){
+        for(col = 0; col < size; col++){
+            //Select start of row in mat1, and start of col in mat2
+            //Answer gets placed in the corresponding row,col in answer
+            sum = 0;
+            void* mat1Ind = mat1 + row*size * sizeof(int);
+            void* mat2Ind = mat2 + col * sizeof(int);
+            void* ansInd = answer + (row*size + col) * sizeof(int);
+            
+            for(i=0; i < size; i++){
+                mat1Ele = 0;
+                mat2Ele = 0;
+                //Get the ith element of the row (mat1) and ith element of the col (mat2)
+                GetVal(mat1Ind + i*sizeof(int), &mat1Ele, sizeof(int));
+                GetVal(mat2Ind + i*size*sizeof(int), &mat2Ele, sizeof(int));
+                //Add all products to finish the dot product of this row&col
+                sum += mat1Ele*mat2Ele;
+            }
+            //Product found, place it
+            PutVal(ansInd, &sum, sizeof(int));
+        }
+    }
 }
 
 
