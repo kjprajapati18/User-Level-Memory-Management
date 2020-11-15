@@ -228,6 +228,9 @@ void myfree(void *va, int size) {
 /* The function copies data pointed by "val" to physical
  * memory pages using virtual address (va)
 */
+//needs to deep copy with memcopy
+//change for loop bounds to while
+//size condition for memcpy
 void PutVal(void *va, void *val, int size) {
 
     /* HINT: Using the virtual address and Translate(), find the physical page. Copy
@@ -236,22 +239,21 @@ void PutVal(void *va, void *val, int size) {
        function.*/
     //go to phys address. set *phys = *val. 
     int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
-    int i = getPageNum(va);
+    int i = getPageNum(va), j = 0;
     int entries = pdtSize *ptSize;
     int pagesMalloc = 0;
-    for(i; i< entries; i++){
-        if(vBitMap[i] ==0){
-            myfree(va, pagesMalloc*PGSIZE);
-            return NULL;
-        }
-        pte_t* pa = Translate(pageDir, getVa(i));
-        if(pa == NULL) {
-            myfree(va, pagesMalloc*PGSIZE);
-            return NULL;
-        }
-        *pa = *(pte_t*)val;
+    if(i + numPages >= entries) return NULL;
+    for(j;j< numPages; j++){
+        if(vBitMap[j] == 0) return NULL;
+    }
+    while(pagesMalloc < numPages){
+        pte_t* pa = Translate(pageDir, getVa(i)); //Check null?
+        if(size < PGSIZE) memcpy(pa, val, size);
+        else memcpy(pa, val, PGSIZE);
         pagesMalloc++;
-        if(pagesMalloc == numPages) break;
+        i++;
+        val+= PGSIZE;
+        size -=PGSIZE;
     }
     return NULL;
 }
@@ -265,28 +267,24 @@ void GetVal(void *va, void *val, int size) {
     If you are implementing TLB,  always check first the presence of translation
     in TLB before proceeding forward */
     int numPages = size%PGSIZE == 0? size/PGSIZE: size/PGSIZE+1;
-    int i = getPageNum(va);
+    int i = getPageNum(va), j = 0;
     int entries = pdtSize*ptSize;
-    int pagesFound;
-    //after each page, increment val (physical address) by pagesize to get to next physical page and fill it in as you go.
-    for(i; i < entries; i++){
-        if(vBitMap[i] == 0){
-            //dont know if val should keep the values we got up to or if we should clear it for fails later down the va
-            return NULL;
-        }
-        pte_t* pa = Translate(pageDir, getVa(i));
-        if(pa == NULL){
-            return NULL;
-        }
-        *(pte_t*)val = *pa;
+    int pagesFound = 0;
+    if(i + numPages >= entries) return NULL;
+    for(j; j < numPages; j++){
+        if(vBitMap[j] == 0) return NULL;
+    }
+    while(pagesFound < numPages){
+        pte_t* pa = Translate(pageDir, getVa(i)); //checknull?
+        if(size < PGSIZE) memcpy(val, pa, size);
+        else memcpy(pa, val, PGSIZE);
         pagesFound++;
-        val = val + sizeof(*pa);
-        if(pagesFound == numPages) break;
+        i++;
+        val+=PGSIZE;
+        size-=PGSIZE;
     }
     return NULL;
 }
-
-
 
 /*
 This function receives two matrices mat1 and mat2 as an argument with size
