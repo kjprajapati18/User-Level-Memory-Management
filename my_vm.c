@@ -239,7 +239,7 @@ void PutVal(void *va, void *val, int size) {
        function.*/
     //go to phys address. set *phys = *val. 
     int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
-    int i = getPageNum(va), j = 0;
+    int i = getPageNum(va), j = i;
     int entries = pdtSize *ptSize;
     int pagesMalloc = 0;
     if(i + numPages >= entries) return NULL;
@@ -247,7 +247,7 @@ void PutVal(void *va, void *val, int size) {
         if(vBitMap[j] == 0) return NULL;
     }
     while(pagesMalloc < numPages){
-        pte_t* pa = Translate(pageDir, getVa(i)); //Check null?
+        pte_t* pa = Translate(pageDir, getVA(i)); //Check null?
         if(size < PGSIZE) memcpy(pa, val, size);
         else memcpy(pa, val, PGSIZE);
         pagesMalloc++;
@@ -267,7 +267,7 @@ void GetVal(void *va, void *val, int size) {
     If you are implementing TLB,  always check first the presence of translation
     in TLB before proceeding forward */
     int numPages = size%PGSIZE == 0? size/PGSIZE: size/PGSIZE+1;
-    int i = getPageNum(va), j = 0;
+    int i = getPageNum(va), j = i;
     int entries = pdtSize*ptSize;
     int pagesFound = 0;
     if(i + numPages >= entries) return NULL;
@@ -275,7 +275,7 @@ void GetVal(void *va, void *val, int size) {
         if(vBitMap[j] == 0) return NULL;
     }
     while(pagesFound < numPages){
-        pte_t* pa = Translate(pageDir, getVa(i)); //checknull?
+        pte_t* pa = Translate(pageDir, getVA(i)); //checknull?
         if(size < PGSIZE) memcpy(val, pa, size);
         else memcpy(pa, val, PGSIZE);
         pagesFound++;

@@ -50,5 +50,6 @@ void MatMult(void *mat1, void *mat2, int size, void *answer);
 //Helper Function headers
 int checkMap(int* map, int pdInd, int ptInd);
 void* getVA(int page);
+int getPageNum(void* va);
 
 #endif
