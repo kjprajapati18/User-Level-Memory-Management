@@ -5,7 +5,7 @@ int* pBitMap, *vBitMap;
 pde_t* pageDir;
 int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
 
-#define debug
+//#define debug
 
 /*
 Function responsible for allocating and setting your physical memory 
@@ -52,16 +52,16 @@ pte_t *Translate(pde_t *pgdir, void *va) {
     //HINT: Get the Page directory index (1st level) Then get the
     //2nd-level-page table index using the virtual address.  Using the page
     //directory index and page table index get the physical address
-    int pdInd = (unsigned long)va >> (offsetBits + ptBits);
-    int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
-    
+    unsigned long pdInd = (unsigned long)va >> (offsetBits + ptBits);
+    unsigned long ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    unsigned long offset = ((unsigned long)va <<pdtBits + ptBits) >> (pdtBits + ptBits);
     #ifdef debug
-    printf("pd: %d\n", pdInd);
-    printf("pt: %d\n", ptInd);
+    printf("pd: %u\n", pdInd);
+    printf("pt: %u\n", ptInd);
     #endif
     if(pdInd < pdtSize && ptInd < ptSize){
         pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t);
-        return *entry;
+        return *entry + offset;
     }
 
     //If translation not successfull
@@ -242,20 +242,36 @@ void PutVal(void *va, void *val, int size) {
     int i = getPageNum(va), j = i;
     int entries = pdtSize *ptSize;
     int pagesMalloc = 0;
-    if(i + numPages >= entries) return NULL;
+    unsigned long offset = ((unsigned long)va <<pdtBits + ptBits) >> (pdtBits + ptBits);
+    if(i + numPages >= entries) return;
     for(j;j< numPages; j++){
-        if(vBitMap[j] == 0) return NULL;
+        if(vBitMap[j] == 0) return;
     }
     while(pagesMalloc < numPages){
-        pte_t* pa = Translate(pageDir, getVA(i)); //Check null?
-        if(size < PGSIZE) memcpy(pa, val, size);
-        else memcpy(pa, val, PGSIZE);
-        pagesMalloc++;
+        pte_t* pa = Translate(pageDir, getVA(i)); //checknull?
+        //hourglass figure
+        if(pagesMalloc == 0){
+            if(size > PGSIZE) {
+                memcpy(pa, val, PGSIZE - offset);
+                val+=PGSIZE-offset;
+                size-=PGSIZE-offset;
+            }
+            else {
+                memcpy(pa, val, size - offset);
+                val+=size-offset;
+                size-=offset;
+            }
+        }
+        else if(size < PGSIZE) memcpy(pa, val, size);
+        else {
+            memcpy(pa, val, PGSIZE);
+            size-=PGSIZE;
+            val+=PGSIZE;
+        }
         i++;
-        val+= PGSIZE;
-        size -=PGSIZE;
+        pagesMalloc++;
     }
-    return NULL;
+    return;
 }
 
 
@@ -270,20 +286,35 @@ void GetVal(void *va, void *val, int size) {
     int i = getPageNum(va), j = i;
     int entries = pdtSize*ptSize;
     int pagesFound = 0;
-    if(i + numPages >= entries) return NULL;
+    unsigned long offset = ((unsigned long)va <<pdtBits + ptBits) >> (pdtBits + ptBits);
+    if(i + numPages >= entries) return;
     for(j; j < numPages; j++){
-        if(vBitMap[j] == 0) return NULL;
+        if(vBitMap[j] == 0) return;
     }
     while(pagesFound < numPages){
         pte_t* pa = Translate(pageDir, getVA(i)); //checknull?
-        if(size < PGSIZE) memcpy(val, pa, size);
-        else memcpy(pa, val, PGSIZE);
-        pagesFound++;
+        if(pagesFound == 0){
+            if(size > PGSIZE) {
+                memcpy(val, pa, PGSIZE - offset);
+                val+=PGSIZE - offset;
+                size-=PGSIZE - offset;
+            }
+            else {
+                memcpy(val, pa, size -offset);
+                val+=size-offset;
+                size-=offset;   
+            }
+        }
+        else if(size < PGSIZE) memcpy(val, pa, size);
+        else {
+            memcpy(pa, val, PGSIZE);
+            size-=PGSIZE;
+            val+=PGSIZE;
+        }
         i++;
-        val+=PGSIZE;
-        size-=PGSIZE;
+        pagesFound++;
     }
-    return NULL;
+    return;
 }
 
 /*
