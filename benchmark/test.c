@@ -3,15 +3,15 @@
 #include <stdio.h>
 #include "../my_vm.h"
 
-#define SIZE 5
+#define SIZE 1
 
 int main() {
 
     printf("Allocating three arrays of 400 bytes\n");
-    void *a = myalloc(100*4);
+    void *a = myalloc(4*SIZE*SIZE);
     int old_a = (int)a;
-    void *b = myalloc(100*4);
-    void *c = myalloc(100*4);
+    void *b = myalloc(4*SIZE*SIZE);
+    void *c = myalloc(4*SIZE*SIZE);
     int x = 1;
     int y, z;
     int i =0, j=0;
@@ -22,11 +22,13 @@ int main() {
 
     printf("Storing integers to generate a SIZExSIZE matrix\n");
     for (i = 0; i < SIZE; i++) {
+        //printf("%d\n", i);
         for (j = 0; j < SIZE; j++) {
             address_a = (unsigned int)a + ((i * SIZE * sizeof(int))) + (j * sizeof(int));
             address_b = (unsigned int)b + ((i * SIZE * sizeof(int))) + (j * sizeof(int));
             PutVal((void *)address_a, &x, sizeof(int));
             PutVal((void *)address_b, &x, sizeof(int));
+            
         }
     } 
 
@@ -48,6 +50,7 @@ int main() {
 
 
     for (i = 0; i < SIZE; i++) {
+        //printf("%d\n", i);
         for (j = 0; j < SIZE; j++) {
             address_c = (unsigned int)c + ((i * SIZE * sizeof(int))) + (j * sizeof(int));
             GetVal((void *)address_c, &y, sizeof(int));
