@@ -3,12 +3,23 @@
 #include <stdio.h>
 #include "../my_vm.h"
 
-#define SIZE -2
+#define SIZE 10
+
+int adder(){
+    while(1){
+        printf("ye\n");
+        sleep(2);
+    }
+}
 
 int main() {
 
+    pthread_t thread;
+    pthread_create(&thread, NULL, adder, NULL);
+
+
     printf("Allocating three arrays of 400 bytes\n");
-    void *a = myalloc(-4*SIZE*SIZE);
+    void *a = myalloc(4*SIZE*SIZE);
     int old_a = (int)a;
     void *b = myalloc(4*SIZE*SIZE);
     void *c = myalloc(4*SIZE*SIZE);
@@ -70,5 +81,6 @@ int main() {
     else
         printf("free function does not work, %d\n", m);
 
+    pthread_join(thread, NULL);
     return 0;
 }
