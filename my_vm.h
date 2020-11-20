@@ -49,8 +49,9 @@ void GetVal(void *va, void *val, int size);
 void MatMult(void *mat1, void *mat2, int size, void *answer);
 
 //Helper Function headers
-int checkMap(int* map, int pdInd, int ptInd);
+int checkMap(char* map, int pdInd, int ptInd);
 void* getVA(int page);
 int getPageNum(void* va);
+void printBitmap(char* bm, unsigned int size);
 
 #endif

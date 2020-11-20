@@ -1,7 +1,7 @@
 #include "my_vm.h"
 
 void* pMem = NULL;
-int* pBitMap, *vBitMap;
+char* pBitMap, *vBitMap;
 pde_t* pageDir;
 int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
 
@@ -38,8 +38,8 @@ void SetPhysicalMem() {
         pageDir[i] = malloc(sizeof(pte_t)*ptSize);
     }*/
     
-    int pBMSize = sizeof(int)*pdtSize*ptSize;
-    int vBMSize = sizeof(int)*MAX_MEMSIZE/PGSIZE;
+    int pBMSize = sizeof(char)*MEMSIZE/PGSIZE;
+    int vBMSize = sizeof(char)*MAX_MEMSIZE/PGSIZE;
     pBitMap = malloc(pBMSize);
     memset(pBitMap, 0, pBMSize);
     vBitMap = malloc(vBMSize);
@@ -166,7 +166,7 @@ void *myalloc(unsigned int num_bytes) {
     void* va = vaStart;
     int physPage = 0;
     int pagesMalloc = 0;
-    int numEntries = pdtSize*ptSize;
+    unsigned long long numEntries = MEMSIZE/PGSIZE;
     while(num_bytes > 0){
         int i;
         //Find any free phys Page
@@ -197,6 +197,8 @@ void *myalloc(unsigned int num_bytes) {
         num_bytes = num_bytes > PGSIZE? num_bytes-PGSIZE: 0;
         if(num_bytes > 0) va += PGSIZE;
     }
+    // printBitmap(vBitMap, (unsigned long long)MAX_MEMSIZE/PGSIZE);
+    // printBitmap(pBitMap, (unsigned long long)MEMSIZE/PGSIZE);
     pthread_mutex_unlock(&mapLock);
     return vaStart;
 }
@@ -245,6 +247,8 @@ int myfree(void *va, int size) {
         }
         i--;
     }
+    // printBitmap(vBitMap, (unsigned long long)MAX_MEMSIZE/PGSIZE);
+    // printBitmap(pBitMap, (unsigned long long)MEMSIZE/PGSIZE);
     pthread_mutex_unlock(&mapLock);
     #ifdef debug
     printf("Successful free at address %ld\n", va);
@@ -434,7 +438,7 @@ void MatMult(void *mat1, void *mat2, int size, void *answer) {
 
 
 //Helper Functions
-int checkMap(int* map, int pdInd, int ptInd){
+int checkMap(char* map, int pdInd, int ptInd){
     
     if(pdInd < pdtSize && ptInd < ptSize){
        return map[pdInd*ptSize+ptInd];
@@ -456,4 +460,15 @@ int getPageNum(void* va){
     int pdInd = (unsigned long)va >> (offsetBits + ptBits);
     int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
     int pageNum = pdInd*ptSize + ptInd;
+}
+
+void printBitmap(char* bm, unsigned int size){
+    int i;
+    if(size < (unsigned long long) MAX_MEMSIZE/PGSIZE) printf("P ");
+    else printf("V ");
+    printf("Map: ");
+    for(i=0; i < size; i++){
+        if(bm[i] == 1) printf("%d, ", i);
+    }
+    printf("done\n");
 }
