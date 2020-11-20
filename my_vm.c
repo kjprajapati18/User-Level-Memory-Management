@@ -175,7 +175,7 @@ void *myalloc(unsigned int num_bytes) {
         if(i == numEntries){
             //free virtual bitmap from current pageInd to pageInd-pageMalloc + numPages <--If implemeting thread safety as above
             pthread_mutex_unlock(&mapLock);
-            myfree(vaStart, pagesMalloc*PGSIZE); //this pages malloc needs to be converted to a total size
+            myfree(vaStart, pagesMalloc*PGSIZE - 1); //this pages malloc needs to be converted to a total size
             return NULL;
         }
 
@@ -205,7 +205,7 @@ int myfree(void *va, int size) {
     unsigned long max = -1;
 
     //If va+size-1 > max, then we want to return. (EX: if u free 1 byte at VA 9 with max 9, it should work)
-    if((unsigned int)va > max - size +1 || size == 0) return -2;
+    if((unsigned int)va > max - size +1 || size <= 0) return -2;
     
     int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
     int pdInd = (unsigned long)va >> (offsetBits + ptBits);
@@ -266,8 +266,13 @@ void PutVal(void *va, void *val, int size) {
     unsigned long offset = ((unsigned long)va <<(pdtBits + ptBits)) >> (pdtBits + ptBits);
 
     if(i + numPages >= entries) return;
+
+    pthread_mutex_lock(&mapLock);
     for(j=i;j< numPages; j++){
-        if(vBitMap[j] == 0) return;
+        if(vBitMap[j] == 0){
+            pthread_mutex_unlock(&mapLock);
+            return;
+        }
     }
 
     while(pagesMalloc < numPages){
@@ -315,6 +320,7 @@ void PutVal(void *va, void *val, int size) {
         //i++;
         pagesMalloc++;*/
     }
+    pthread_mutex_unlock(&mapLock);
     return;
 }
 
@@ -332,8 +338,13 @@ void GetVal(void *va, void *val, int size) {
     int pagesFound = 0;
     unsigned long offset = ((unsigned long)va <<pdtBits + ptBits) >> (pdtBits + ptBits);
     if(i + numPages >= entries) return;
+
+    pthread_mutex_lock(&mapLock);
     for(j; j < numPages; j++){
-        if(vBitMap[j] == 0) return;
+        if(vBitMap[j] == 0){
+            pthread_mutex_unlock(&mapLock);
+            return;
+        }
     }
     while(pagesFound < numPages){
         pte_t* pa = Translate(pageDir, va); //checknull?
@@ -369,6 +380,7 @@ void GetVal(void *va, void *val, int size) {
         i++;
         pagesFound++;*/
     }
+    pthread_mutex_unlock(&mapLock);
     return;
 }
 

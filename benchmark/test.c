@@ -5,17 +5,18 @@
 
 #define SIZE 10
 
+/*
 int adder(){
     while(1){
         printf("ye\n");
         sleep(2);
     }
-}
+}*/
 
 int main() {
 
-    pthread_t thread;
-    pthread_create(&thread, NULL, adder, NULL);
+    // pthread_t thread;
+    // pthread_create(&thread, NULL, adder, NULL);
 
 
     printf("Allocating three arrays of 400 bytes\n");
