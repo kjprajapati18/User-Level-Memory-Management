@@ -5,12 +5,15 @@ int* pBitMap, *vBitMap;
 pde_t* pageDir;
 int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
 
+pthread_mutex_t mapLock;
 //#define debug
 
 /*
 Function responsible for allocating and setting your physical memory 
 */
 void SetPhysicalMem() {
+
+    pthread_mutex_init(&mapLock, NULL);
 
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
@@ -140,13 +143,16 @@ void *myalloc(unsigned int num_bytes) {
     int numPages = num_bytes%PGSIZE == 0? num_bytes/PGSIZE : num_bytes/PGSIZE + 1;
    
     //Find first free page in vMem that can store this many bytes
+    pthread_mutex_lock(&mapLock);
     int pageInd = (int) get_next_avail(numPages);
     //set virtual bitmap for threadsafety, busy wait w global?
     #ifdef debug
     printf("pageInd: %d\n", pageInd);
     #endif
-    if(pageInd == -1) return NULL;
-    
+    if(pageInd == -1){
+        pthread_mutex_unlock(&mapLock);
+        return NULL;
+    }
     //Get return address
     void* vaStart = getVA(pageInd);
 
@@ -168,7 +174,8 @@ void *myalloc(unsigned int num_bytes) {
         //If no more free phys pages, free everything we have malloced so far and return null
         if(i == numEntries){
             //free virtual bitmap from current pageInd to pageInd-pageMalloc + numPages <--If implemeting thread safety as above
-            myfree(vaStart, pagesMalloc); //this pages malloc needs to be converted to a total size
+            pthread_mutex_unlock(&mapLock);
+            myfree(vaStart, pagesMalloc*PGSIZE); //this pages malloc needs to be converted to a total size
             return NULL;
         }
 
@@ -184,19 +191,21 @@ void *myalloc(unsigned int num_bytes) {
         num_bytes = num_bytes > PGSIZE? num_bytes-PGSIZE: 0;
         if(num_bytes > 0) va += PGSIZE;
     }
-
+    pthread_mutex_unlock(&mapLock);
     return vaStart;
 }
 
 /* Responsible for releasing one or more memory pages using virtual address (va)
 */
-void myfree(void *va, int size) {
+int myfree(void *va, int size) {
 
     //Free the page table entries starting from this virtual address (va)
     // Also mark the pages free in the bitmap
     //Only free if the memory from "va" to va+size is valid
-    unsigned long max = -1; 
-    if(max - (unsigned int)va < size) return;
+    unsigned long max = -1;
+
+    //If va+size-1 > max, then we want to return. (EX: if u free 1 byte at VA 9 with max 9, it should work)
+    if((unsigned int)va > max - size +1 || size == 0) return -2;
     
     int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
     int pdInd = (unsigned long)va >> (offsetBits + ptBits);
@@ -204,7 +213,18 @@ void myfree(void *va, int size) {
     int i = numPages;
     int j = ptInd;
     int k = pdInd;
+    pthread_mutex_lock(&mapLock);
+    int check;
+    for(check = pdInd*ptSize+ptInd; check < pdInd*ptSize+ptInd + numPages; check++){
+        //If any of the attempted page frees were already free, then don't free at all
+        if(vBitMap[check] == 0){
+            pthread_mutex_unlock(&mapLock);
+            return -1;
+        }
+    }
     while(i > 0){
+        //pageDir[k] will give back the memory address of the page entry table
+        //Use pointer arithmetic to find the correct entry within that table
         pte_t* entry = pageDir[k] + j*sizeof(pte_t);
         pte_t pa = *entry;
         *entry = 0;
@@ -218,10 +238,11 @@ void myfree(void *va, int size) {
         }
         i--;
     }
+    pthread_mutex_unlock(&mapLock);
     #ifdef debug
     printf("Successful free at address %ld\n", va);
     #endif
-    return;
+    return 0;
 }
 
 

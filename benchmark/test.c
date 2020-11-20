@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include "../my_vm.h"
 
-#define SIZE 1
+#define SIZE -2
 
 int main() {
 
     printf("Allocating three arrays of 400 bytes\n");
-    void *a = myalloc(4*SIZE*SIZE);
+    void *a = myalloc(-4*SIZE*SIZE);
     int old_a = (int)a;
     void *b = myalloc(4*SIZE*SIZE);
     void *c = myalloc(4*SIZE*SIZE);
@@ -59,7 +59,7 @@ int main() {
         printf("\n");
     }
     printf("Freeing the allocations!\n");
-    myfree(a, 100*4);
+    int m = myfree(a, 100*4);
     myfree(b, 100*4);
     myfree(c, 100*4);
     
@@ -68,7 +68,7 @@ int main() {
     if ((int)a == old_a)
         printf("free function works\n");
     else
-        printf("free function does not work\n");
+        printf("free function does not work, %d\n", m);
 
     return 0;
 }

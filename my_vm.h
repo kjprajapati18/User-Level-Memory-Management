@@ -10,6 +10,7 @@
 //Add any important includes here which you may need
 #include <math.h>
 #include <string.h>
+#include <pthread.h>
 
 #define PGSIZE 4096
 
@@ -42,7 +43,7 @@ int PageMap(pde_t *pgdir, void *va, void* pa);
 bool check_in_tlb(void *va);
 void put_in_tlb(void *va, void *pa);
 void *myalloc(unsigned int num_bytes);
-void myfree(void *va, int size);
+int myfree(void *va, int size);
 void PutVal(void *va, void *val, int size);
 void GetVal(void *va, void *val, int size);
 void MatMult(void *mat1, void *mat2, int size, void *answer);
