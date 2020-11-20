@@ -31,11 +31,12 @@ void SetPhysicalMem() {
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
     pageDir = malloc(sizeof(pde_t) * pdtSize);
-    
+    memset(pageDir, 0, sizeof(pde_t)*pdtSize);
+    /*
     int i;
     for(i = 0; i < pdtSize; i++){
         pageDir[i] = malloc(sizeof(pte_t)*ptSize);
-    }
+    }*/
     
     int pBMSize = sizeof(int)*pdtSize*ptSize;
     int vBMSize = sizeof(int)*MAX_MEMSIZE/PGSIZE;
@@ -92,7 +93,12 @@ PageMap(pde_t *pgdir, void *va, void *pa)
     //Instead of checkign bit map, map all VA's to 0. Now to check if mapping exists, see if it maps to 0
     //Mapping to 0 means no mapping exists. Mapping to anything else means it exists
     if(checkMap(vBitMap, pdInd, ptInd) == 0){
-        pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t); 
+        pde_t* dir = &(pageDir[pdInd]);
+        if(*dir == 0){
+            *dir = malloc(sizeof(pte_t)*ptSize);
+            memset(*dir, 0, sizeof(pte_t)*ptSize);
+        }
+        pte_t* entry = *dir + ptInd*sizeof(pte_t); 
         *entry = pa; //////
         return 0;
     }
@@ -224,7 +230,8 @@ int myfree(void *va, int size) {
     }
     while(i > 0){
         //pageDir[k] will give back the memory address of the page entry table
-        //Use pointer arithmetic to find the correct entry within that table
+        //Use pointer arithmetic to find the correct entry within that table 
+        //(guranteed to be there since bitmap is set + we are within bounds)
         pte_t* entry = pageDir[k] + j*sizeof(pte_t);
         pte_t pa = *entry;
         *entry = 0;

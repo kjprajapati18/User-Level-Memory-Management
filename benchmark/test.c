@@ -20,6 +20,7 @@ int main() {
 
 
     printf("Allocating three arrays of 400 bytes\n");
+    //void* test = myalloc(4096*1024*3);
     void *a = myalloc(4*SIZE*SIZE);
     int old_a = (int)a;
     void *b = myalloc(4*SIZE*SIZE);
@@ -29,6 +30,7 @@ int main() {
     int i =0, j=0;
     int address_a = 0, address_b = 0;
     int address_c = 0;
+    //myfree(test, 4096*1024*3);
 
     printf("Addresses of the allocations: %x, %x, %x\n", (int)a, (int)b, (int)c);
 
@@ -82,6 +84,6 @@ int main() {
     else
         printf("free function does not work, %d\n", m);
 
-    pthread_join(thread, NULL);
+    //pthread_join(thread, NULL);
     return 0;
 }
