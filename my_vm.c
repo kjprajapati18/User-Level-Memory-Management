@@ -64,8 +64,8 @@ pte_t *Translate(pde_t *pgdir, void *va) {
     printf("pt: %u\n", ptInd);
     #endif
     if(pdInd < pdtSize && ptInd < ptSize){
-        pte_t* entry = pageDir[pdInd] + ptInd*sizeof(pte_t);
-        return *entry + offset;
+        pte_t* entry = (pte_t*)(pageDir[pdInd] + ptInd*sizeof(pte_t));
+        return (pte_t*) (*entry + offset);
     }
 
     //If translation not successfull
@@ -95,11 +95,11 @@ PageMap(pde_t *pgdir, void *va, void *pa)
     if(checkMap(vBitMap, pdInd, ptInd) == 0){
         pde_t* dir = &(pageDir[pdInd]);
         if(*dir == 0){
-            *dir = malloc(sizeof(pte_t)*ptSize);
-            memset(*dir, 0, sizeof(pte_t)*ptSize);
+            *dir = (pde_t) malloc(sizeof(pte_t)*ptSize);
+            memset((void*)(*dir), 0, sizeof(pte_t)*ptSize);
         }
-        pte_t* entry = *dir + ptInd*sizeof(pte_t); 
-        *entry = pa; //////
+        pte_t* entry = (pte_t*) (*dir + ptInd*sizeof(pte_t)); 
+        *entry = (pte_t) pa; //////
         return 0;
     }
     return -1;
@@ -197,8 +197,8 @@ void *myalloc(unsigned int num_bytes) {
         num_bytes = num_bytes > PGSIZE? num_bytes-PGSIZE: 0;
         if(num_bytes > 0) va += PGSIZE;
     }
-    // printBitmap(vBitMap, (unsigned long long)MAX_MEMSIZE/PGSIZE);
-    // printBitmap(pBitMap, (unsigned long long)MEMSIZE/PGSIZE);
+    printBitmap(vBitMap, (unsigned long long)MAX_MEMSIZE/PGSIZE);
+    printBitmap(pBitMap, (unsigned long long)MEMSIZE/PGSIZE);
     pthread_mutex_unlock(&mapLock);
     return vaStart;
 }
@@ -213,7 +213,7 @@ int myfree(void *va, int size) {
     unsigned long max = -1;
 
     //If va+size-1 > max, then we want to return. (EX: if u free 1 byte at VA 9 with max 9, it should work)
-    if((unsigned int)va > max - size +1 || size <= 0) return -2;
+    if((unsigned long)va > max - size +1 || size <= 0) return -2;
     
     int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
     int pdInd = (unsigned long)va >> (offsetBits + ptBits);
@@ -234,7 +234,7 @@ int myfree(void *va, int size) {
         //pageDir[k] will give back the memory address of the page entry table
         //Use pointer arithmetic to find the correct entry within that table 
         //(guranteed to be there since bitmap is set + we are within bounds)
-        pte_t* entry = pageDir[k] + j*sizeof(pte_t);
+        pte_t* entry = (pte_t*) (pageDir[k] + j*sizeof(pte_t));
         pte_t pa = *entry;
         *entry = 0;
         int physInd = (int) (pa - (unsigned long) pMem)/PGSIZE;
@@ -247,8 +247,8 @@ int myfree(void *va, int size) {
         }
         i--;
     }
-    // printBitmap(vBitMap, (unsigned long long)MAX_MEMSIZE/PGSIZE);
-    // printBitmap(pBitMap, (unsigned long long)MEMSIZE/PGSIZE);
+    printBitmap(vBitMap, (unsigned long long)MAX_MEMSIZE/PGSIZE);
+    printBitmap(pBitMap, (unsigned long long)MEMSIZE/PGSIZE);
     pthread_mutex_unlock(&mapLock);
     #ifdef debug
     printf("Successful free at address %ld\n", va);
@@ -453,7 +453,7 @@ void* getVA(int pageNum){
     pdInd = pdInd <<(offsetBits+ptBits);
     ptInd = ptInd << offsetBits;
 
-    return (pdInd | ptInd);
+    return (void*) (pdInd | ptInd);
 }
 
 int getPageNum(void* va){
