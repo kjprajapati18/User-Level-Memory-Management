@@ -12,12 +12,12 @@
 #include <string.h>
 #include <pthread.h>
 
-#define PGSIZE 4096
+#define PGSIZE 1024
 
 // Maximum size of your memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024 //4GB
 
-#define MEMSIZE 1024*1024*1024*1ULL     //1GB
+#define MEMSIZE 1024*4ULL     //1GB
 
 // Represents a page table entry
 typedef unsigned long pte_t;
@@ -51,7 +51,7 @@ void MatMult(void *mat1, void *mat2, int size, void *answer);
 //Helper Function headers
 int checkMap(char* map, int pdInd, int ptInd);
 void* getVA(int page);
-int getPageNum(void* va);
+unsigned long getPageNum(void* va);
 void printBitmap(char* bm, unsigned int size);
 
 #endif

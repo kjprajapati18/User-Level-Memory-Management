@@ -50,6 +50,7 @@ int main() {
     printf("Add2 agian: %ul\n", Translate(NULL, add2));
     printf("Add2 Virt %ul\n", add2);
 */
+/*
     void* add = myalloc(sizeof(int)+1);
     int a = 5;
     void* thing = Translate(NULL, add+1);
@@ -61,4 +62,14 @@ int main() {
     int b;
     GetVal(add+1, &b, sizeof(int));
     printf("%d\n", b);
+    */
+    printf("Starting...\n");
+    void* a = myalloc(sizeof(int));
+    int b = 5;
+    PutVal(a, &b, sizeof(int));
+    //void* c = myalloc(sizeof())
+    printf("%d\n", *((int*) Translate(NULL, a))  );
+    int d= 0;
+    GetVal(a, &d, sizeof(int));
+    printf("%d\n", d);
 }

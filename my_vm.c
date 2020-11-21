@@ -110,12 +110,12 @@ PageMap(pde_t *pgdir, void *va, void *pa)
 */
 void *get_next_avail(int num_pages) {
     //Use virtual address bitmap to find the next free page
-    int i;
-    int entries = pdtSize*ptSize;
+    unsigned long i;
+    unsigned long entries = pdtSize*ptSize;
     for(i = 0; i < entries; i++){
         //Find free page
         if(vBitMap[i] == 0){
-            int j;
+            unsigned long j;
             //Check if enough contiguous free pages
             for(j=1; j < num_pages; j++){
                 if(vBitMap[i+j] == 1){
@@ -271,8 +271,8 @@ void PutVal(void *va, void *val, int size) {
        function.*/
     //go to phys address. set *phys = *val. 
     int numPages = size%PGSIZE == 0? size/PGSIZE : size/PGSIZE + 1;
-    int i = getPageNum(va), j;
-    int entries = pdtSize *ptSize;
+    unsigned long i = getPageNum(va), j;
+    unsigned long entries = pdtSize *ptSize;
     int pagesMalloc = 0;
     unsigned long offset = ((unsigned long)va <<(pdtBits + ptBits)) >> (pdtBits + ptBits);
 
@@ -290,7 +290,7 @@ void PutVal(void *va, void *val, int size) {
         pte_t* pa = Translate(pageDir, va); //checknull?
         //hourglass figure
         int len = size > (PGSIZE)? PGSIZE: size;
-        if(pagesMalloc = 0) len = size > (PGSIZE-offset)? PGSIZE-offset: size;
+        if(pagesMalloc == 0) len = size > (PGSIZE-offset)? PGSIZE-offset: size;
         memcpy(pa, val, len);
         val+=len;
         size-= len;
@@ -344,8 +344,8 @@ void GetVal(void *va, void *val, int size) {
     If you are implementing TLB,  always check first the presence of translation
     in TLB before proceeding forward */
     int numPages = size%PGSIZE == 0? size/PGSIZE: size/PGSIZE+1;
-    int i = getPageNum(va), j = i;
-    int entries = pdtSize*ptSize;
+    unsigned long i = getPageNum(va), j = i;
+    unsigned long entries = pdtSize*ptSize;
     int pagesFound = 0;
     unsigned long offset = ((unsigned long)va <<pdtBits + ptBits) >> (pdtBits + ptBits);
     if(i + numPages >= entries) return;
@@ -361,7 +361,7 @@ void GetVal(void *va, void *val, int size) {
         pte_t* pa = Translate(pageDir, va); //checknull?
 
         int len = size > (PGSIZE)? PGSIZE: size;
-        if(pagesFound = 0) len = size > (PGSIZE-offset)? PGSIZE-offset: size;
+        if(pagesFound == 0) len = size > (PGSIZE-offset)? PGSIZE-offset: size;
 
         memcpy(val, pa, len);
 
@@ -456,19 +456,20 @@ void* getVA(int pageNum){
     return (void*) (pdInd | ptInd);
 }
 
-int getPageNum(void* va){
-    int pdInd = (unsigned long)va >> (offsetBits + ptBits);
-    int ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
-    int pageNum = pdInd*ptSize + ptInd;
+unsigned long getPageNum(void* va){
+    unsigned long pdInd = (unsigned long)va >> (offsetBits + ptBits);
+    unsigned long ptInd = ((unsigned long)va << pdtBits) >> (pdtBits + offsetBits);
+    unsigned long pageNum = pdInd*ptSize + ptInd;
+    return pageNum;
 }
 
 void printBitmap(char* bm, unsigned int size){
-    int i;
+    /*int i;
     if(size < (unsigned long long) MAX_MEMSIZE/PGSIZE) printf("P ");
     else printf("V ");
     printf("Map: ");
     for(i=0; i < size; i++){
         if(bm[i] == 1) printf("%d, ", i);
     }
-    printf("done\n");
+    printf("done\n");*/
 }
