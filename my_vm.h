@@ -10,13 +10,14 @@
 //Add any important includes here which you may need
 #include <math.h>
 #include <string.h>
+#include <pthread.h>
 
-#define PGSIZE 4096
+#define PGSIZE 1024
 
 // Maximum size of your memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024 //4GB
 
-#define MEMSIZE 1024*1024*1024
+#define MEMSIZE 1024*4ULL     //1GB
 
 // Represents a page table entry
 typedef unsigned long pte_t;
@@ -46,14 +47,15 @@ int PageMap(pde_t *pgdir, void *va, void* pa);
 int check_in_tlb(void *va); //was bool im gonna change to int cuz fuck that
 void put_in_tlb(void *va, void *pa);
 void *myalloc(unsigned int num_bytes);
-void myfree(void *va, int size);
+int myfree(void *va, int size);
 void PutVal(void *va, void *val, int size);
 void GetVal(void *va, void *val, int size);
 void MatMult(void *mat1, void *mat2, int size, void *answer);
 
 //Helper Function headers
-int checkMap(int* map, int pdInd, int ptInd);
+int checkMap(char* map, int pdInd, int ptInd);
 void* getVA(int page);
-int getPageNum(void* va);
+unsigned long getPageNum(void* va);
+void printBitmap(char* bm, unsigned int size);
 
 #endif

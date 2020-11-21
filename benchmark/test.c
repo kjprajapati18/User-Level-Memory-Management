@@ -3,30 +3,46 @@
 #include <stdio.h>
 #include "../my_vm.h"
 
-#define SIZE 5
+#define SIZE 10
+
+/*
+int adder(){
+    while(1){
+        printf("ye\n");
+        sleep(2);
+    }
+}*/
 
 int main() {
 
+    // pthread_t thread;
+    // pthread_create(&thread, NULL, adder, NULL);
+
+
     printf("Allocating three arrays of 400 bytes\n");
-    void *a = myalloc(100*4);
+    //void* test = myalloc(4096*1024*3);
+    void *a = myalloc(4*SIZE*SIZE);
     int old_a = (int)a;
-    void *b = myalloc(100*4);
-    void *c = myalloc(100*4);
+    void *b = myalloc(4*SIZE*SIZE);
+    void *c = myalloc(4*SIZE*SIZE);
     int x = 1;
     int y, z;
     int i =0, j=0;
     int address_a = 0, address_b = 0;
     int address_c = 0;
+    //myfree(test, 4096*1024*3);
 
     printf("Addresses of the allocations: %x, %x, %x\n", (int)a, (int)b, (int)c);
 
     printf("Storing integers to generate a SIZExSIZE matrix\n");
     for (i = 0; i < SIZE; i++) {
+        //printf("%d\n", i);
         for (j = 0; j < SIZE; j++) {
             address_a = (unsigned int)a + ((i * SIZE * sizeof(int))) + (j * sizeof(int));
             address_b = (unsigned int)b + ((i * SIZE * sizeof(int))) + (j * sizeof(int));
             PutVal((void *)address_a, &x, sizeof(int));
             PutVal((void *)address_b, &x, sizeof(int));
+            
         }
     } 
 
@@ -48,6 +64,7 @@ int main() {
 
 
     for (i = 0; i < SIZE; i++) {
+        //printf("%d\n", i);
         for (j = 0; j < SIZE; j++) {
             address_c = (unsigned int)c + ((i * SIZE * sizeof(int))) + (j * sizeof(int));
             GetVal((void *)address_c, &y, sizeof(int));
@@ -56,7 +73,7 @@ int main() {
         printf("\n");
     }
     printf("Freeing the allocations!\n");
-    myfree(a, 100*4);
+    int m = myfree(a, 100*4);
     myfree(b, 100*4);
     myfree(c, 100*4);
     
@@ -65,7 +82,8 @@ int main() {
     if ((int)a == old_a)
         printf("free function works\n");
     else
-        printf("free function does not work\n");
+        printf("free function does not work, %d\n", m);
 
+    //pthread_join(thread, NULL);
     return 0;
 }
