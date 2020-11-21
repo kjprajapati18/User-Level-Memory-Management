@@ -27,19 +27,23 @@ typedef unsigned long pde_t;
 #define TLB_SIZE 120
 
 //Structure to represents TLB
-struct tlb {
+typedef struct _tlb {
 
     //Assume your TLB is a direct mapped TLB of TBL_SIZE (entries)
     // You must also define wth TBL_SIZE in this file.
     //Assume each bucket to be 4 bytes
-};
-struct tlb tlb_store;
+    void* va;
+    void* pa;
+
+}tlb;
+
+tlb* tlb_store;
 
 
 void SetPhysicalMem();
 pte_t* Translate(pde_t *pgdir, void *va);
 int PageMap(pde_t *pgdir, void *va, void* pa);
-bool check_in_tlb(void *va);
+int check_in_tlb(void *va); //was bool im gonna change to int cuz fuck that
 void put_in_tlb(void *va, void *pa);
 void *myalloc(unsigned int num_bytes);
 void myfree(void *va, int size);

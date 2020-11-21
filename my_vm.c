@@ -40,6 +40,7 @@ void SetPhysicalMem() {
     memset(pBitMap, 0, pBMSize);
     vBitMap = malloc(vBMSize);
     memset(vBitMap, 0, vBMSize);
+    tlb_store = (tlb*) malloc(TLB_SIZE*sizeof(tlb));
 }
 
 
@@ -358,6 +359,9 @@ void MatMult(void *mat1, void *mat2, int size, void *answer) {
     }
 }
 
+int check_in_tlb(void *va){
+    
+}
 
 //Helper Functions
 int checkMap(int* map, int pdInd, int ptInd){
