@@ -39,7 +39,7 @@ typedef struct _tlb {
 }tlb;
 
 tlb* tlb_store;
-
+int tlb_count;
 
 void SetPhysicalMem();
 pte_t* Translate(pde_t *pgdir, void *va);
