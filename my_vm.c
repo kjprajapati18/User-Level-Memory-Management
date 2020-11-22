@@ -9,7 +9,7 @@ int tlb_count = 0;
 unsigned long misses = 0;
 unsigned long calls = 0;
 
-pthread_mutex_t mapLock;
+pthread_mutex_t mapLock = PTHREAD_MUTEX_INITIALIZER;
 //#define debug
 
 /*
@@ -17,7 +17,15 @@ Function responsible for allocating and setting your physical memory
 */
 void SetPhysicalMem() {
 
-    pthread_mutex_init(&mapLock, NULL);
+
+    //Try to lock the mutex. If multiple threads enter this at the same time (since mutex hasnt been init), then only one should set this up.
+    //The rest should wait for it to be set up, then exit this function.
+    pthread_mutex_lock(&mapLock);
+    if(pMem != NULL){
+        //printf("Already set\n");
+        pthread_mutex_unlock(&mapLock);
+        return;
+    }
 
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
@@ -50,6 +58,9 @@ void SetPhysicalMem() {
     memset(vBitMap, 0, vBMSize);
     tlb_store = (tlb*) malloc(TLB_SIZE*sizeof(tlb));
     memset(tlb_store, 0, TLB_SIZE*sizeof(tlb));
+    
+    //printf("Mems are set\n");
+    pthread_mutex_unlock(&mapLock);
 }
 
 
@@ -149,7 +160,9 @@ and used by the benchmark
 void *myalloc(unsigned int num_bytes) {
 
     //HINT: If the physical memory is not yet initialized, then allocate and initialize.
-    if(pMem == NULL) SetPhysicalMem();
+    if(pMem == NULL){
+        SetPhysicalMem();
+    }
     /* HINT: If the page directory is not initialized, then initialize the
    page directory. Next, using get_next_avail(), check if there are free pages. If
    free pages are available, set the bitmaps and map a new page. Note, you will 
@@ -496,8 +509,8 @@ void print_TLB_missrate(){
     if(calls ==0) printf("No calls yet to TLB\n");
     else {
         #ifndef debug
-        printf("misses: %lu", misses);
-        printf("calls: %lu", calls);
+        printf("misses: %lu, ", misses);
+        printf("calls: %lu\n", calls);
         #endif
         printf("TLB Missrate: %f\n", (double) misses/calls);
     }
