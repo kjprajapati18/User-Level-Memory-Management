@@ -12,7 +12,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#define PGSIZE 1024
+#define PGSIZE 2
 
 // Maximum size of your memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024 //4GB
@@ -35,27 +35,26 @@ typedef struct _tlb {
     //Assume each bucket to be 4 bytes
     void* va;
     void* pa;
-
+    int time;
 }tlb;
-
-tlb* tlb_store;
-int tlb_count;
 
 void SetPhysicalMem();
 pte_t* Translate(pde_t *pgdir, void *va);
 int PageMap(pde_t *pgdir, void *va, void* pa);
-int check_in_tlb(void *va); //was bool im gonna change to int cuz fuck that
+void* check_in_tlb(void *va); //was bool im gonna change to int cuz fuck that
 void put_in_tlb(void *va, void *pa);
 void *myalloc(unsigned int num_bytes);
 int myfree(void *va, int size);
 void PutVal(void *va, void *val, int size);
 void GetVal(void *va, void *val, int size);
 void MatMult(void *mat1, void *mat2, int size, void *answer);
+void print_TLB_missrate();
 
 //Helper Function headers
 int checkMap(char* map, int pdInd, int ptInd);
 void* getVA(int page);
 unsigned long getPageNum(void* va);
 void printBitmap(char* bm, unsigned int size);
+int removeFromTLB(void* va);
 
 #endif

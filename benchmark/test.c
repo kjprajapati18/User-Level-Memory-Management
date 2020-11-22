@@ -85,5 +85,6 @@ int main() {
         printf("free function does not work, %d\n", m);
 
     //pthread_join(thread, NULL);
+    print_TLB_missrate();
     return 0;
 }

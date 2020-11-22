@@ -4,6 +4,10 @@ void* pMem = NULL;
 char* pBitMap, *vBitMap;
 pde_t* pageDir;
 int offsetBits, pdtBits, ptBits, pdtSize, ptSize;
+tlb* tlb_store;
+int tlb_count = 0;
+unsigned long misses = 0;
+unsigned long calls = 0;
 
 pthread_mutex_t mapLock;
 //#define debug
@@ -66,7 +70,11 @@ pte_t *Translate(pde_t *pgdir, void *va) {
     printf("pt: %u\n", ptInd);
     #endif
     if(pdInd < pdtSize && ptInd < ptSize){
-        pte_t* entry = (pte_t*)(pageDir[pdInd] + ptInd*sizeof(pte_t));
+        pte_t* entry = check_in_tlb(va);
+        if(entry == NULL) {
+            entry = (pte_t*)(pageDir[pdInd] + ptInd*sizeof(pte_t));
+            put_in_tlb(va, entry);
+        }
         return (pte_t*) (*entry + offset);
     }
 
@@ -239,6 +247,7 @@ int myfree(void *va, int size) {
         pte_t* entry = (pte_t*) (pageDir[k] + j*sizeof(pte_t));
         pte_t pa = *entry;
         *entry = 0;
+        removeFromTLB(getVA(k*ptSize + j));
         int physInd = (int) (pa - (unsigned long) pMem)/PGSIZE;
         pBitMap[physInd] = 0;
         vBitMap[k*ptSize + j]= 0;
@@ -255,6 +264,7 @@ int myfree(void *va, int size) {
     #ifdef debug
     printf("Successful free at address %ld\n", va);
     #endif
+
     return 0;
 }
 
@@ -438,18 +448,59 @@ void MatMult(void *mat1, void *mat2, int size, void *answer) {
     }
 }
 
-int check_in_tlb(void *va){
+void* check_in_tlb(void *va){
+    calls++;
     int i;
-    for(i = 0; i < tlb_count; i++){
+    for(i = 0; i< TLB_SIZE; i++){
         if(tlb_store[i].pa != 0 && tlb_store[i].va == va){
-            return 1;
+            return tlb_store[i].pa;
         }
     }
-    return 0;
+    misses++;
+    return NULL;
 }
 
 void put_in_tlb(void *va, void *pa){
+    int i = 0;
+    if(tlb_count < TLB_SIZE){
+        for(i; i< TLB_SIZE; i++){
+            if(tlb_store[i].pa == 0){
+                tlb_store[i].pa = pa;
+                tlb_store[i].va = va;
+                tlb_store[i].time = 0;
+                break;
+            }
+            else{
+                tlb_store[i].time++;
+            }
+        }
+        for(i; i < TLB_SIZE; i++){
+            if(tlb_store[i].pa != 0) tlb_store[i].time++;
 
+        }
+        tlb_count++;
+        return;
+    }
+    for(i; i < TLB_SIZE; i++){
+        if(tlb_store[i].time == TLB_SIZE-1){
+            tlb_store[i].pa = pa;
+            tlb_store[i].va = va;
+            tlb_store[i].time = 0;
+        }
+        else tlb_store[i].time++;
+    }
+    return;
+}
+
+void print_TLB_missrate(){
+    if(calls ==0) printf("No calls yet to TLB\n");
+    else {
+        #ifndef debug
+        printf("misses: %lu", misses);
+        printf("calls: %lu", calls);
+        #endif
+        printf("TLB Missrate: %f\n", (double) misses/calls);
+    }
 }
 
 //Helper Functions
@@ -487,4 +538,21 @@ void printBitmap(char* bm, unsigned int size){
         if(bm[i] == 1) printf("%d, ", i);
     }
     printf("done\n");*/
+}
+
+int removeFromTLB(void* va){
+    int i;
+    for(i; i < TLB_SIZE; i++){
+        if(tlb_store[i].va == va && tlb_store[i].pa != 0){
+            tlb_store[i].pa = 0;
+            tlb_store[i].va = 0;
+            tlb_store[i].time = 0;
+            break;
+        }
+    }
+    if(tlb_count > 0) tlb_count--;
+    #ifndef debug
+    else printf("What is wrong with you. Everything *bottom text*.\n");
+    #endif
+    return 0;
 }
