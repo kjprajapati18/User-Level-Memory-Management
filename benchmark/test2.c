@@ -25,6 +25,8 @@ int main() {
     printf("Addres of thign: %ld\n", *thing);
     printf("Addres of thign2: %ld\n", *thing2);
 */
+
+
 /*
     void* add1 = myalloc(30);
     void* add2 = myalloc(45);
@@ -63,6 +65,7 @@ int main() {
     GetVal(add+1, &b, sizeof(int));
     printf("%d\n", b);
     */
+    /*
     printf("Starting...\n");
     void* a = myalloc(sizeof(int));
     int b = 5;
@@ -71,5 +74,5 @@ int main() {
     printf("%d\n", *((int*) Translate(NULL, a))  );
     int d= 0;
     GetVal(a, &d, sizeof(int));
-    printf("%d\n", d);
+    printf("%d\n", d);*/
 }

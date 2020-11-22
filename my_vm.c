@@ -42,8 +42,8 @@ void SetPhysicalMem() {
         pageDir[i] = malloc(sizeof(pte_t)*ptSize);
     }*/
     
-    int pBMSize = sizeof(char)*MEMSIZE/PGSIZE;
-    int vBMSize = sizeof(char)*MAX_MEMSIZE/PGSIZE;
+    unsigned long pBMSize = sizeof(char)*MEMSIZE/PGSIZE;
+    unsigned long vBMSize = sizeof(char)*MAX_MEMSIZE/PGSIZE;
     pBitMap = malloc(pBMSize);
     memset(pBitMap, 0, pBMSize);
     vBitMap = malloc(vBMSize);
@@ -70,10 +70,10 @@ pte_t *Translate(pde_t *pgdir, void *va) {
     printf("pt: %u\n", ptInd);
     #endif
     if(pdInd < pdtSize && ptInd < ptSize){
-        pte_t* entry = check_in_tlb(va);
+        pte_t* entry = check_in_tlb((va-offset));
         if(entry == NULL) {
             entry = (pte_t*)(pageDir[pdInd] + ptInd*sizeof(pte_t));
-            put_in_tlb(va, entry);
+            put_in_tlb(va-offset, entry);
         }
         return (pte_t*) (*entry + offset);
     }
@@ -547,12 +547,15 @@ int removeFromTLB(void* va){
             tlb_store[i].pa = 0;
             tlb_store[i].va = 0;
             tlb_store[i].time = 0;
+
+            if(tlb_count > 0) tlb_count--;
+            #ifndef debug
+            else printf("What is wrong with you. Everything *bottom text*.\n");
+            #endif
+
             break;
         }
     }
-    if(tlb_count > 0) tlb_count--;
-    #ifndef debug
-    else printf("What is wrong with you. Everything *bottom text*.\n");
-    #endif
+    
     return 0;
 }
