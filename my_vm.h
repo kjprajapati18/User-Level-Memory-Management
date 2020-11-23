@@ -17,7 +17,7 @@
 // Maximum size of your memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024 //4GB
 
-#define MEMSIZE 1024*1024*1024*1ULL     //1GB
+#define MEMSIZE 1024*1024*1024     //1GB
 
 // Represents a page table entry
 typedef unsigned long pte_t;

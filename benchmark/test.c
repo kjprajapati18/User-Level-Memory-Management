@@ -21,10 +21,10 @@ int main() {
 
     printf("Allocating three arrays of 400 bytes\n");
     //void* test = myalloc(4096*1024*3);
-    void *a = myalloc(4*SIZE*SIZE);
+    void *a = myalloc(100*4);
     int old_a = (int)a;
-    void *b = myalloc(4*SIZE*SIZE);
-    void *c = myalloc(4*SIZE*SIZE);
+    void *b = myalloc(100*4);
+    void *c = myalloc(100*4);
     int x = 1;
     int y, z;
     int i =0, j=0;
