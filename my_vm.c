@@ -322,39 +322,6 @@ void PutVal(void *va, void *val, int size) {
         va+=len;
         pagesMalloc++;
 
-        /*if(pagesMalloc == 0){
-            int len = size > (PGSIZE-offset)? PGSIZE-offset: size; 
-            memcpy(pa, val, len);
-            val+=len;
-            size-= len;
-            va+=len;
-            
-            if(size > PGSIZE) {
-                memcpy(pa, val, PGSIZE - offset);
-                val+=PGSIZE-offset;
-                size-=PGSIZE-offset;
-            }
-            else {
-                memcpy(pa, val, size - offset);
-                val+=size-offset;
-                size-=offset;
-            }
-        }
-        else{
-            int len = size > PGSIZE? PGSIZE: size; 
-            memcpy(pa, val, len);
-            val+=len;
-            size-= len;
-            va+=len;
-            if(size < PGSIZE) memcpy(pa, val, size);
-        else {
-            memcpy(pa, val, PGSIZE);
-            size-=PGSIZE;
-            val+=PGSIZE;
-        }
-        }
-        //i++;
-        pagesMalloc++;*/
     }
     pthread_mutex_unlock(&mapLock);
     return;
@@ -394,27 +361,7 @@ void GetVal(void *va, void *val, int size) {
         size-= len;
         va+=len;
         pagesFound++;
-        /*
-        if(pagesFound == 0){
-            if(size > PGSIZE) {
-                memcpy(val, pa, PGSIZE - offset);
-                val+=PGSIZE - offset;
-                size-=PGSIZE - offset;
-            }
-            else {
-                memcpy(val, pa, size -offset);
-                val+=size-offset;
-                size-=offset;   
-            }
-        }
-        else if(size < PGSIZE) memcpy(val, pa, size);
-        else {
-            memcpy(pa, val, PGSIZE);
-            size-=PGSIZE;
-            val+=PGSIZE;
-        }
-        i++;
-        pagesFound++;*/
+        
     }
     pthread_mutex_unlock(&mapLock);
     return;
@@ -508,7 +455,7 @@ void put_in_tlb(void *va, void *pa){
 void print_TLB_missrate(){
     if(calls ==0) printf("No calls yet to TLB\n");
     else {
-        #ifndef debug
+        #ifdef debug
         printf("misses: %lu, ", misses);
         printf("calls: %lu\n", calls);
         #endif
@@ -562,7 +509,7 @@ int removeFromTLB(void* va){
             tlb_store[i].time = 0;
 
             if(tlb_count > 0) tlb_count--;
-            #ifndef debug
+            #ifdef debug
             else printf("What is wrong with you. Everything *bottom text*.\n");
             #endif
 
